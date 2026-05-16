@@ -1,0 +1,205 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMINISTRATOR
+  ADMIN
+  MEDICAL_STAFF
+  CUSTOMER
+}
+
+enum VideoStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id             String    @id @default(cuid())
+  name           String?
+  email          String    @unique
+  password       String?
+  image          String?
+  emailVerified  DateTime?
+  role           Role      @default(CUSTOMER)
+  accounts       Account[]
+  sessions       Session[]
+  videos         Video[]   @relation("UploadedVideos")
+  approvedVideos Video[]   @relation("ApprovedVideos")
+  orders         Order[]
+  reviews        Review[]
+  notifications  Notification[] @relation("UserNotifications")
+  medicalStaffInfo MedicalStaffInfo?
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Video {
+  id              String       @id @default(cuid())
+  title           String
+  description     String
+  message         String?
+  price           Float?
+  discount        Float?
+  status          VideoStatus  @default(PENDING)
+  videoUrl        String?
+  videoPreviewUrl String?
+  thumbnailUrl    String?
+  uploadedById    String
+  uploadedBy      User         @relation("UploadedVideos", fields: [uploadedById], references: [id], onDelete: Cascade)
+  approvedById    String?
+  approvedBy      User?        @relation("ApprovedVideos", fields: [approvedById], references: [id], onDelete: SetNull)
+  categoryId      String
+  category        Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  subCategorieIds String[]
+  reviews         Review[]
+  orders          Order[]
+  SubCategory     SubCategory? @relation(fields: [subCategoryId], references: [id])
+  subCategoryId   String?
+
+  createdAt DateTime @default(now())
+}
+
+model Category {
+  id            String        @id @default(cuid())
+  name          String        @unique
+  slug          String        @unique
+  subCategories SubCategory[]
+  videos        Video[]
+
+  createdAt DateTime @default(now())
+}
+
+model SubCategory {
+  id         String   @id @default(cuid())
+  name       String   @unique
+  slug       String   @unique
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  videos     Video[]
+
+  createdAt DateTime @default(now())
+}
+
+model Review {
+  id      String  @id @default(cuid())
+  rating  Int
+  comment String?
+  userId  String
+  videoId String
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  video   Video   @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+enum OrderStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+enum BannerStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model Banner {
+  id        String   @id @default(cuid())
+  title     String
+  description String
+  status    BannerStatus @default(ACTIVE)
+  imageUrl  String
+  createdAt DateTime @default(now())
+}
+
+enum StatusMedical {
+  PENDING
+  ACTIVE
+  INACTIVE
+}
+
+model MedicalStaffInfo {
+  id          String   @id @default(cuid())
+  username    String   @unique
+  phone       String
+  address     String
+  specialization String
+  credentials String
+  experience  String
+  institutionName String
+  createdAt   DateTime @default(now())
+  status      StatusMedical @default(PENDING)
+
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Order {
+  id        String   @id @default(cuid())
+  userId    String
+  videoId   String
+  amount    Float
+  status    OrderStatus @default(PENDING)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  userId    String
+  user      User     @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+
+model GeneralSetting {
+  id        String   @id @default(cuid())
+  companyName String   @unique
+  address     String
+  phone       String
+  email       String   @unique
+  logoUrl     String   @unique @default("/logo.png")
+  createdAt DateTime @default(now())
+}
+
+model SocialMedia {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  url       String
+  createdAt DateTime @default(now())
+}
