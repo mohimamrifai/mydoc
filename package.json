@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "pnpm prisma generate && pnpm prisma db seed && next build",
+    "build": "pnpm prisma generate && pnpm prisma migrate reset && pnpm prisma db seed && next build",
     "start": "next start",
     "lint": "next lint"
   },
